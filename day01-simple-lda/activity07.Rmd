@@ -6,3 +6,68 @@ output: github_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+## Task 2: Load the necessary packages
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+
+```
+
+## Task 3: Load the data and visualize
+
+```{r}
+resume <- read.csv("https://www.openintro.org/data/csv/resume.csv")
+
+resume<- resume %>% mutate(received_callback = factor(received_callback, labels = c("NO", "YES")))
+
+years <- resume %>% ggplot(aes(x=years_experience, color = received_callback, group = received_callback)) + geom_density(adjust = 4)
+
+log_years <- resume %>% ggplot(aes(x=log(years_experience), color = received_callback, group = received_callback)) + geom_density(adjust = 4)
+
+library(patchwork)
+
+years + log_years + plot_layout(guides = "collect")
+```
+
+## Task 4: LDA
+
+```{r}
+# Convert received_callback to a factor with more informative labels
+
+resume <- resume %>% 
+  mutate(received_callback = factor(received_callback, labels = c("No", "Yes")))
+
+#LDA
+
+library(discrim)
+
+lda_years <- discrim_linear() %>% 
+  set_mode("classification") %>% 
+  set_engine("MASS") %>% 
+  fit(received_callback ~ log(years_experience), data = resume)
+
+lda_years
+```
+
+## Task 5: Predictions
+
+```{r}
+predict(lda_years, new_data = resume, type = "prob")
+
+```
+
+```{r}
+augment(lda_years, new_data = resume) %>% 
+  conf_mat(truth = received_callback, estimate = .pred_class)
+```
+
+```{r}
+augment(lda_years, new_data = resume) %>% 
+  accuracy(truth = received_callback, estimate = .pred_class)
+```
+
+
+
+
